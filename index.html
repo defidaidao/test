@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DefiDaiDao | Smart Dashboard</title>
+    <style>
+        :root {
+            --binance-yellow: #F3BA2F;
+            --bg-dark: #0B0E11;
+            --card-bg: #1E2329;
+            --text-main: #EAECEF;
+            --text-dim: #848E9C;
+            --success: #02C076;
+            --border: #474D57;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #1e2329 0%, #0b0e11 100%);
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            background: var(--binance-yellow);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(105vh) scale(0); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
+        }
+
+        .container {
+            background: var(--card-bg);
+            border-radius: 24px;
+            width: 90%;
+            max-width: 420px;
+            padding: 2rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            border: 1px solid var(--border);
+            position: relative;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h2 { color: var(--binance-yellow); margin: 0; font-size: 1.5rem; font-weight: 800; }
+        .network-badge { font-size: 0.65rem; background: rgba(243, 186, 47, 0.1); color: var(--binance-yellow); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--binance-yellow); }
+
+        .balance-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .balance-card { background: rgba(43, 49, 57, 0.6); padding: 12px; border-radius: 14px; border: 1px solid var(--border); }
+        .bal-label { font-size: 0.7rem; color: var(--text-dim); display: block; margin-bottom: 4px; }
+        .bal-value { font-size: 0.95rem; font-weight: bold; color: #fff; }
+
+        .progress-container { height: 4px; background: #2B3139; border-radius: 10px; margin-bottom: 25px; overflow: hidden; display: block; }
+        #progressBar { height: 100%; width: 0%; background: var(--binance-yellow); transition: 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .btn {
+            width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer;
+            transition: 0.3s; font-size: 1rem; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 10px;
+        }
+
+        #connectBtn { background: var(--binance-yellow); color: #000; }
+        #connectBtn.connected { background: #2B3139; color: var(--binance-yellow); border: 1px solid var(--binance-yellow); }
+
+        .action-btn { background: #474D57; color: var(--text-dim); cursor: not-allowed; display: none; }
+        .action-btn.active { background: var(--binance-yellow); color: #000; cursor: pointer; display: flex; }
+
+        #registrationZone { display: none; }
+        #registerStep { display: none; animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .input-wrapper { background: #2B3139; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 15px; }
+        input { background: transparent; border: none; color: white; width: 100%; outline: none; font-family: monospace; }
+
+        .dashboard-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; display: none; margin-top: 10px; }
+        .dash-btn { background: transparent; color: #fff; border: 1px solid var(--border); font-size: 0.8rem; padding: 12px; }
+        
+        #infoBox { background: rgba(0,0,0,0.3); border-radius: 16px; padding: 15px; margin-top: 15px; display: none; border: 1px solid var(--border); }
+        .stat-line { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 8px; }
+
+        #status { font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-top: 15px; }
+        .spinner { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.2); border-top: 2px solid #000; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="particles" id="particleContainer"></div>
+
+<div class="container">
+    <div class="header">
+        <h2>DefiDaiDao</h2>
+        <span class="network-badge">BSC MAINNET</span>
+    </div>
+
+    <div class="balance-cards">
+        <div class="balance-card">
+            <span class="bal-label">My BNB</span>
+            <span class="bal-value" id="bnbBal">0.000</span>
+        </div>
+        <div class="balance-card">
+            <span class="bal-label">My DAI</span>
+            <span class="bal-value" id="daiBal">0.00</span>
+        </div>
+    </div>
+
+    <div class="progress-container" id="progCont"><div id="progressBar"></div></div>
+
+    <button id="connectBtn" class="btn">Connect Wallet</button>
+
+    <div id="registrationZone">
+        <div id="approveStep">
+            <button id="approveBtn" class="btn action-btn">
+                <div class="spinner" id="approveLoader"></div>
+                <span>1. Approve DAI</span>
+            </button>
+        </div>
+
+        <div id="registerStep">
+            <div class="input-wrapper">
+                <input type="text" id="uplineInput" placeholder="Sponsor Address (0x...)">
+            </div>
+            <button id="registerBtn" class="btn action-btn active">
+                <div class="spinner" id="registerLoader"></div>
+                <span>2. Finalize Registration</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="dashboard-btns" id="dashGroup">
+        <button id="rewardBtn" class="btn dash-btn">🎁 Claim Reward</button>
+        <button id="infoBtn" class="btn dash-btn">📊 Global Stats</button>
+    </div>
+
+    <div id="infoBox">
+        <div class="stat-line"><span>Global ID:</span> <span id="val-id" style="color:var(--binance-yellow)">-</span></div>
+        <div class="stat-line"><span>Team L/R:</span> <span><b id="val-left">0</b> / <b id="val-right">0</b></span></div>
+        <div class="stat-line"><span>Status:</span> <span id="val-sync" style="color:var(--success)">-</span></div>
+    </div>
+
+    <div id="status">Secure connection required</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<script>
+    const CONTRACT_ADDRESS = "0x84a47446f7a563Ce899aE991127b20FB8E20cEca";
+    const DAI_ADDRESS = "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3";
+    
+    let signer, mainContract, tokenContract;
+
+    function createParticles() {
+        const container = document.getElementById('particleContainer');
+        for (let i = 0; i < 40; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = Math.random() * 3 + 1 + 'px';
+            p.style.width = size; p.style.height = size;
+            p.style.left = Math.random() * 100 + '%';
+            p.style.animationDuration = Math.random() * 10 + 10 + 's';
+            p.style.animationDelay = Math.random() * 5 + 's';
+            container.appendChild(p);
+        }
+    }
+    window.onload = createParticles;
+
+    async function updateBalances(addr, provider) {
+        const bnb = await provider.getBalance(addr);
+        document.getElementById('bnbBal').innerText = parseFloat(ethers.formatEther(bnb)).toFixed(3);
+        const dContract = new ethers.Contract(DAI_ADDRESS, ["function balanceOf(address) view returns (uint256)"], provider);
+        const dai = await dContract.balanceOf(addr);
+        document.getElementById('daiBal').innerText = parseFloat(ethers.formatUnits(dai, 18)).toFixed(2);
+    }
+
+    document.getElementById('connectBtn').onclick = async () => {
+        if (!window.ethereum) return alert("Please use TrustWallet/MetaMask browser");
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = await provider.getSigner();
+            const addr = await signer.getAddress();
+            
+            await updateBalances(addr, provider);
+            
+            // تنظیم قراردادها
+            tokenContract = new ethers.Contract(DAI_ADDRESS, ["function approve(address s, uint256 a) public returns (bool)"], signer);
+            mainContract = new ethers.Contract(CONTRACT_ADDRESS, [
+                "function step_2_become_owner(address _target) external",
+                "function reward() external",
+                "function Owner_Info_Global(address _u) external view returns (uint64 ID, uint32 All_Left, uint32 All_Right, uint32 Save, uint32 Left_Remaining, uint32 Right_Remaining, address UpLine_Address, address Left_Child, address Right_Child, bool Sync_Complete)"
+            ], signer);
+
+            // چک کردن وضعیت عضویت
+            const info = await mainContract.Owner_Info_Global(addr);
+            const isMember = Number(info.ID) > 0;
+
+            document.getElementById('connectBtn').innerText = addr.substring(0,6) + "..." + addr.substring(38);
+            document.getElementById('dashGroup').style.display = "grid";
+
+            if (isMember) {
+                // اگر عضو است: مخفی کردن مراحل ثبت‌نام و نوار پیشرفت
+                document.getElementById('registrationZone').style.display = "none";
+                document.getElementById('progCont').style.display = "none";
+                statusText.innerText = "Welcome back, Member #" + info.ID;
+            } else {
+                // اگر عضو نیست: نمایش مرحله اول
+                document.getElementById('registrationZone').style.display = "block";
+                document.getElementById('approveBtn').classList.add('active');
+                document.getElementById('approveBtn').disabled = false;
+                document.getElementById('progressBar').style.width = "25%";
+                statusText.innerText = "Please complete Step 1: Approve";
+            }
+        } catch (err) { console.error(err); }
+    };
+
+    // منطق دکمه Approve
+    document.getElementById('approveBtn').onclick = async () => {
+        try {
+            document.getElementById('approveLoader').style.display = "block";
+            const tx = await tokenContract.approve(CONTRACT_ADDRESS, ethers.parseUnits("1", 18));
+            await tx.wait();
+            document.getElementById('approveLoader').style.display = "none";
+            document.getElementById('approveStep').style.display = "none";
+            document.getElementById('registerStep').style.display = "block";
+            document.getElementById('progressBar').style.width = "65%";
+            statusText.innerText = "Step 2: Enter Sponsor Address";
+        } catch (err) { document.getElementById('approveLoader').style.display = "none"; }
+    };
+
+    // منطق دکمه Register
+    document.getElementById('registerBtn').onclick = async () => {
+        const upline = document.getElementById('uplineInput').value.trim();
+        if(!ethers.isAddress(upline)) return alert("Invalid Sponsor Address");
+        try {
+            document.getElementById('registerLoader').style.display = "block";
+            const tx = await mainContract.step_2_become_owner(upline);
+            await tx.wait();
+            document.getElementById('registerStep').style.display = "none";
+            document.getElementById('progCont').style.display = "none";
+            statusText.innerText = "Registration Successful!";
+        } catch (err) { document.getElementById('registerLoader').style.display = "none"; }
+    };
+
+    // دکمه‌های داشبورد
+    document.getElementById('rewardBtn').onclick = async () => {
+        try { const tx = await mainContract.reward(); await tx.wait(); alert("Reward Claimed!"); } 
+        catch (err) { alert("No rewards available"); }
+    };
+
+    document.getElementById('infoBtn').onclick = async () => {
+        const addr = await signer.getAddress();
+        const info = await mainContract.Owner_Info_Global(addr);
+        document.getElementById('infoBox').style.display = "block";
+        document.getElementById('val-id').innerText = info.ID.toString();
+        document.getElementById('val-left').innerText = info.All_Left.toString();
+        document.getElementById('val-right').innerText = info.All_Right.toString();
+        document.getElementById('val-sync').innerText = info.Sync_Complete ? "Synced" : "Active";
+    };
+</script>
+</body>
+</html>
